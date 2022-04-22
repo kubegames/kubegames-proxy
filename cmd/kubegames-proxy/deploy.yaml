@@ -1,0 +1,49 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: default
+  name: kubegames-proxy
+spec:
+  selector:
+    app: kubegames-proxy
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: LoadBalancer
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: default
+  name: kubegames-proxy
+spec:
+  selector:
+    matchLabels:
+      app: kubegames-proxy
+  template:
+    metadata:
+      labels:
+        app: kubegames-proxy
+    spec:
+      containers:
+      - name: kubegames-proxy
+        image: kubegames/kubegames-proxy:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - "bin/sh"
+        - "-c"
+        - "./kubegames-proxy -p=8080 -k=/home/kube.config"
+        volumeMounts:
+        - mountPath: /home/kube.config
+          name: k8s-client-config
+          subPath: kube.config
+        ports:
+        - containerPort: 8080
+          hostPort: 8080
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: k8s-client-config
+          name: k8s-client-config
